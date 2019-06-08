@@ -65,3 +65,9 @@ type Bar = {
 
 console.log(keys<Foo>()); // ['a', 'b', 'c', 'c.d', 'c.e', 'c.f']
 ```
+
+## Run tests
+
+```bash
+npm test
+```

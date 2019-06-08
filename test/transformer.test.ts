@@ -75,53 +75,53 @@ describe('Test transformer.', () => {
   });
 
   test('Should get keys of interface 7.', () => {
-    type W = {
+    type Foo = {
       a: string;
       b: number;
       c: boolean;
     }
-    expect(keys<W>()).toMatchObject(['a', 'b', 'c']);
+    expect(keys<Foo>()).toMatchObject(['a', 'b', 'c']);
   });
 
   test('Should get keys of interface 8.', () => {
-    type W = {
+    type Foo = {
       a: string;
       b: number;
-      c: V;
+      c: Bar;
     }
-    type V = {
+    type Bar = {
       d: string;
       e: number;
       f: boolean;
     }
-    expect(keys<W>()).toMatchObject(['a', 'b', 'c', 'c.d', 'c.e', 'c.f']);
+    expect(keys<Foo>()).toMatchObject(['a', 'b', 'c', 'c.d', 'c.e', 'c.f']);
   });
 
   test('Should get keys of interface 9.', () => {
-    interface W {
+    interface Foo {
       a: string;
       b: number;
-      c: V;
+      c: Bar;
     }
-    type V = {
+    type Bar = {
       d: string;
       e: number;
       f: boolean;
     }
-    expect(keys<W>()).toMatchObject(['a', 'b', 'c', 'c.d', 'c.e', 'c.f']);
+    expect(keys<Foo>()).toMatchObject(['a', 'b', 'c', 'c.d', 'c.e', 'c.f']);
   });
 
   test('Should get keys of interface 10.', () => {
-    type W = {
+    type Foo = {
       a: string;
       b: number;
-      c: V;
+      c: Bar;
     }
-    interface V {
+    interface Bar {
       d: string;
       e: number;
       f: boolean;
     }
-    expect(keys<W>()).toMatchObject(['a', 'b', 'c', 'c.d', 'c.e', 'c.f']);
+    expect(keys<Foo>()).toMatchObject(['a', 'b', 'c', 'c.d', 'c.e', 'c.f']);
   });
 });
