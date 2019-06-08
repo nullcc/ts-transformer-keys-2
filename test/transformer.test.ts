@@ -98,7 +98,7 @@ describe('Test transformer.', () => {
   });
 
   test('Should get keys of interface 9.', () => {
-     interface W {
+    interface W {
       a: string;
       b: number;
       c: V;
