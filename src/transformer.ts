@@ -11,6 +11,12 @@ function visitNodeAndChildren(node: ts.Node, program: ts.Program, context: ts.Tr
   return ts.visitEachChild(visitNode(node, program), childNode => visitNodeAndChildren(childNode, program, context), context);
 }
 
+interface InterfaceProperty {
+  name: string;
+  optional: boolean;
+  type: string;
+}
+
 let symbolMap = {};
 
 const convertMapToObj = (aMap: any) => {
@@ -38,15 +44,35 @@ function visitNode(node: ts.Node, program: ts.Program): ts.Node {
   symbols.forEach(symbol => {
     properties = [ ...properties, ...getPropertiesOfSymbol(symbol, [], symbolMap) ];
   });
-  return ts.createArrayLiteral(properties.map(property => ts.createLiteral(property)));
+
+  return ts.createArrayLiteral(properties.map(property => ts.createRegularExpressionLiteral(JSON.stringify(property))));
 }
 
-const getPropertiesOfSymbol = (symbol: any, outerLayerProperties: string[], symbolMap: any): string[] => {
-  let properties: string[] = [];
-  let propertyPathElements = JSON.parse(JSON.stringify(outerLayerProperties));
+const getPropertiesOfSymbol = (symbol: any, outerLayerProperties: InterfaceProperty[], symbolMap: any): InterfaceProperty[] => {
+  let properties: InterfaceProperty[] = [];
+  let propertyPathElements = JSON.parse(JSON.stringify(outerLayerProperties.map(property => property)));
   const property = symbol.escapedName;
   propertyPathElements.push(property);
-  properties.push(propertyPathElements.join('.'));
+  let optional = true;
+  for (const declaration of symbol.declarations) {
+    if (declaration.questionToken === undefined) {
+      optional = false;
+      break;
+    }
+  }
+  const propertyTypes: string[] = [];
+  for (const declaration of symbol.declarations) {
+    const propertyType = getPropertyType(declaration.type);
+    if (!propertyTypes.includes(propertyType)) {
+      propertyTypes.push(propertyType);
+    }
+  }
+  const key = {
+    name: propertyPathElements.join('.'),
+    optional,
+    type: propertyTypes.join(' | ')
+  } as InterfaceProperty;
+  properties.push(key);
 
   if (isOutermostLayerSymbol(symbol)) {
     const outermostLayerPropertiesOfSymbol = getOutermostLayerPropertiesOfSymbol(symbol, propertyPathElements, symbolMap);
@@ -78,16 +104,16 @@ const isOutermostLayerSymbol = (symbol: any): boolean => {
   return symbol.valueDeclaration && symbol.valueDeclaration.symbol.valueDeclaration.type.members;
 };
 
-const getOutermostLayerPropertiesOfSymbol = (symbol: any, propertyPathElements: string[], symbolMap: any): string[] => {
-  let properties: string[] = [];
+const getOutermostLayerPropertiesOfSymbol = (symbol: any, propertyPathElements: InterfaceProperty[], symbolMap: any): InterfaceProperty[] => {
+  let properties: InterfaceProperty[] = [];
   symbol.valueDeclaration.symbol.valueDeclaration.type.members.forEach((member: any) => {
     properties = properties.concat(getPropertiesOfSymbol(member.symbol, propertyPathElements, symbolMap));
   });
   return properties;
 };
 
-const getInnerLayerPropertiesOfSymbol = (symbol: any, propertyPathElements: string[], symbolMap: any): string[] => {
-  let properties: string[] = [];
+const getInnerLayerPropertiesOfSymbol = (symbol: any, propertyPathElements: InterfaceProperty[], symbolMap: any): InterfaceProperty[] => {
+  let properties: InterfaceProperty[] = [];
   if (symbolMap && symbolMap[symbol.valueDeclaration.symbol.valueDeclaration.type.typeName.escapedText]) {
     let members = [];
     if (symbolMap[symbol.valueDeclaration.symbol.valueDeclaration.type.typeName.escapedText].members) {
@@ -115,6 +141,47 @@ const getSourceFileNameOfSymbol = (obj: any): any => {
     return objParent.valueDeclaration.fileName;
   }
   return getSourceFileNameOfSymbol(objParent);
+};
+
+const getPropertyType = (propertySignature: ts.PropertySignature): string => {
+  let kind;
+  if (propertySignature.kind) {
+    kind = propertySignature.kind;
+  }
+  switch (kind) {
+    case ts.SyntaxKind.StringKeyword:
+      return 'string';
+    case ts.SyntaxKind.NumberKeyword:
+      return 'number';
+    case ts.SyntaxKind.BooleanKeyword:
+      return 'boolean';
+    case ts.SyntaxKind.FunctionKeyword:
+      return 'function';
+    case ts.SyntaxKind.ObjectKeyword:
+      return 'object';
+    case ts.SyntaxKind.AnyKeyword:
+      return 'any';
+    case ts.SyntaxKind.NullKeyword:
+      return 'null';
+    case ts.SyntaxKind.KeyOfKeyword:
+      return 'keyOf';
+    case ts.SyntaxKind.ArrayType:
+      return `${getPropertyType((<ts.ArrayTypeNode>(propertySignature as any)).elementType as any)}[]`;
+    case ts.SyntaxKind.UnionType:
+      return uniq((<ts.UnionTypeNode>(propertySignature as any)).types.map(type => getPropertyType(type as any))).join(' | ');
+    default:
+      return 'any';
+  }
+};
+
+const uniq = (array: string[]): string[] => {
+  const temp = [];
+  for (const e of array) {
+    if(temp.indexOf(e) == -1){
+      temp.push(e);
+    }
+  }
+  return temp;
 };
 
 const indexTs = path.join(__dirname, '../index.ts');

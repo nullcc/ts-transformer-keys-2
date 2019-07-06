@@ -2,7 +2,7 @@
 
 `ts-transformer-keys-2` is inspired by [ts-transformer-keys](https://github.com/kimamula/ts-transformer-keys).
 It uses custom transformer to parse the keys in 'interface' and 'type' in compile stage in TypeScript 
-which support nested keys.
+which support nested keys, optionality and type.
 
 
 ## Usage
@@ -25,7 +25,14 @@ interface Bar {
   b: number;
 }
 
-console.log(keys<Foo>()); // ['a', 'b', 'c', 'c.a', 'c.b']
+// [
+//   { name: 'a', optional: false, type: 'string' },
+//   { name: 'b', optional: false, type: 'number' },
+//   { name: 'c', optional: false, type: 'any' },
+//   { name: 'c.a', optional: false, type: 'string' },
+//   { name: 'c.b', optional: false, type: 'number' },
+//]
+console.log(keys<Foo>());
 ```
 
 ### Nested type
@@ -44,7 +51,15 @@ type Bar = {
   f: boolean;
 }
 
-console.log(keys<Foo>()); // ['a', 'b', 'c', 'c.d', 'c.e', 'c.f']
+// [
+//   { name: 'a', optional: false, type: 'string' },
+//   { name: 'b', optional: false, type: 'number' },
+//   { name: 'c', optional: false, type: 'any' },
+//   { name: 'c.d', optional: false, type: 'string' },
+//   { name: 'c.e', optional: false, type: 'number' },
+//   { name: 'c.f', optional: false, type: 'boolean' },
+//]
+console.log(keys<Foo>());
 ```
 
 ### Mix interface and type
@@ -63,7 +78,42 @@ type Bar = {
   f: boolean;
 }
 
-console.log(keys<Foo>()); // ['a', 'b', 'c', 'c.d', 'c.e', 'c.f']
+// [
+//   { name: 'a', optional: false, type: 'string' },
+//   { name: 'b', optional: false, type: 'number' },
+//   { name: 'c', optional: false, type: 'any' },
+//   { name: 'c.d', optional: false, type: 'string' },
+//   { name: 'c.e', optional: false, type: 'number' },
+//   { name: 'c.f', optional: false, type: 'boolean' },
+//]
+console.log(keys<Foo>());
+```
+
+### Interface properties has question mark
+```typescript
+import { keys } from 'ts-transformer-keys-2';
+
+type Foo = {
+  a?: string;
+  b: number;
+  c: Bar; 
+}
+
+interface Bar {
+  d?: string;
+  e?: number;
+  f: boolean;
+}
+
+// [
+//   { name: 'a', optional: true, type: 'string'},
+//   { name: 'b', optional: false, type: 'number' },
+//   { name: 'c', optional: false, type: 'any' },
+//   { name: 'c.d', optional: true, type: 'string' },
+//   { name: 'c.e', optional: true, type: 'number' },
+//   { name: 'c.f', optional: false, type: 'boolean' },
+//]
+console.log(keys<Foo>());
 ```
 
 ## Run tests
